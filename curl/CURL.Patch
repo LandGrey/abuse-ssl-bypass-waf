@@ -1,0 +1,96 @@
+
+--- curl-7.60.0/lib/config-win32.h	2018-05-07 08:20
++++ curl-patch/lib/config-win32.h	2018-05-16 14:52
+@@ -724,1 +724,1 @@
+-#elif defined(_M_X64) || defined(__x86_64__) /* x86_64 (MSVC >=2005 or gcc) */
++#elif defined(_M_X64) || defined(_M_AMD64) || defined(__x86_64__) /* x86_64 (MSVC >=2005 or gcc) */
+
+--- curl-7.60.0/lib/libcurl.rc	2017-12-03 00:33
++++ curl-patch/lib/libcurl.rc	2018-05-16 14:53
+@@ -22,4 +22,22 @@
++#include <winuser.h>
+ #include <winver.h>
+ #include "tool_version.h"
+ 
+-LANGUAGE  0x09,0x01
++LANGUAGE 0, 0
++
++1 ICON "../curl.ico"	// https://curl.haxx.se/favicon.ico
++
++ISOLATIONAWARE_MANIFEST_RESOURCE_ID RT_MANIFEST
++BEGIN
++  "<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>\n"
++  "<!-- Copyright (c) " LIBCURL_COPYRIGHT " -->\n"
++  "<assembly manifestVersion='1.0' xmlns='urn:schemas-microsoft-com:asm.v1'>\n"
++  "  <assemblyIdentity language='en-US' name='cURL' processorArchitecture='*' type='win32' version='" LIBCURL_VERSION ".1' />\n"
++  "  <description>libcurl Shared Library</description>\n"
++  "  <file name='advapi32.dll' loadFrom='%SystemRoot%\\system32\\advapi32.dll' />\n"
++  "  <file name='crypt32.dll' loadFrom='%SystemRoot%\\system32\\crypt32.dll' />\n"
++  "  <file name='kernel32.dll' loadFrom='%SystemRoot%\\system32\\kernel32.dll' />\n"
++  "  <file name='wldap32.dll' loadFrom='%SystemRoot%\\system32\\wldap32.dll' />\n"
++  "  <file name='ws2_32.dll' loadFrom='%SystemRoot%\\system32\\ws2_32.dll' />\n"
++  "</assembly>\n"
++END
+
+--- curl-7.60.0/src/curl.rc	2017-12-03 00:33
++++ curl-patch/src/curl.rc	2018-05-16 14:54
+@@ -22,4 +22,22 @@
++#include <winuser.h>
+ #include <winver.h>
+ #include "tool_version.h"
+ 
+-LANGUAGE  0x09,0x01
++LANGUAGE 0, 0
++
++1 ICON "../curl.ico"	// https://curl.haxx.se/favicon.ico
++
++CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST
++BEGIN
++  "<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>\n"
++  "<!-- Copyright (c) " CURL_COPYRIGHT " -->\n"
++  "<assembly manifestVersion='1.0' xmlns='urn:schemas-microsoft-com:asm.v1'>\n"
++  "  <assemblyIdentity language='en-US' name='cURL' processorArchitecture='*' type='win32' version='" CURL_VERSION ".1' />\n"
++  "  <description>The cURL executable</description>\n"
++  "  <file name='advapi32.dll' loadFrom='%SystemRoot%\\system32\\advapi32.dll' />\n"
++  "  <file name='crypt32.dll' loadFrom='%SystemRoot%\\system32\\crypt32.dll' />\n"
++  "  <file name='kernel32.dll' loadFrom='%SystemRoot%\\system32\\kernel32.dll' />\n"
++  "  <file name='wldap32.dll' loadFrom='%SystemRoot%\\system32\\wldap32.dll' />\n"
++  "  <file name='ws2_32.dll' loadFrom='%SystemRoot%\\system32\\ws2_32.dll' />\n"
++  "</assembly>\n"
++END
+
+--- curl-7.60.0/winbuild/MakefileBuild.vc	2018-05-07 09:18
++++ curl-patch/winbuild/MakefileBuild.vc	2018-05-16 14:55
+@@ -85,1 +85,7 @@
+-WIN_LIBS    = ws2_32.lib wldap32.lib advapi32.lib crypt32.lib
++!IF "$(VC)"=="7"
++WIN_LIBS    = ws2_32.lib wldap32.lib bufferoverflowu.lib advapi32.lib crypt32.lib
++!ELSEIF "$(VC)"=="8"
++WIN_LIBS    = ws2_32.lib wldap32.lib bufferoverflowu.lib advapi32.lib crypt32.lib
++!ELSE
++WIN_LIBS    = ws2_32.lib wldap32.lib advapi32.lib crypt32.lib
++!ENDIF
+@@ -562,1 +568,1 @@
+-$(LIB_DIROBJ)\libcurl.res: $(LIBCURL_SRC_DIR)\libcurl.rc
++$(LIB_DIROBJ)\libcurl.res: $(LIBCURL_SRC_DIR)\libcurl.rc ..\curl.ico
+@@ -599,10 +605,10 @@
+-$(CURL_DIROBJ)\nonblock.obj: ../lib/nonblock.c
+-	$(CURL_CC) $(CURL_CFLAGS) /Fo"$@" ../lib/nonblock.c
+-$(CURL_DIROBJ)\strtoofft.obj: ../lib/strtoofft.c
+-	$(CURL_CC) $(CURL_CFLAGS) /Fo"$@" ../lib/strtoofft.c
+-$(CURL_DIROBJ)\warnless.obj: ../lib/warnless.c
+-	$(CURL_CC) $(CURL_CFLAGS) /Fo"$@" ../lib/warnless.c
+-$(CURL_DIROBJ)\curl_ctype.obj: ../lib/curl_ctype.c
+-	$(CURL_CC) $(CURL_CFLAGS) /Fo"$@" ../lib/curl_ctype.c
+-$(CURL_DIROBJ)\curl.res: $(CURL_SRC_DIR)\curl.rc
+-	rc $(CURL_RC_FLAGS)
++$(CURL_DIROBJ)\nonblock.obj: $(LIBCURL_SRC_DIR)\nonblock.c
++	$(CURL_CC) $(CURL_CFLAGS) /Fo"$@" $(LIBCURL_SRC_DIR)\nonblock.c
++$(CURL_DIROBJ)\strtoofft.obj: $(LIBCURL_SRC_DIR)\strtoofft.c
++	$(CURL_CC) $(CURL_CFLAGS) /Fo"$@" $(LIBCURL_SRC_DIR)\strtoofft.c
++$(CURL_DIROBJ)\warnless.obj: $(LIBCURL_SRC_DIR)\warnless.c
++	$(CURL_CC) $(CURL_CFLAGS) /Fo"$@" $(LIBCURL_SRC_DIR)\warnless.c
++$(CURL_DIROBJ)\curl_ctype.obj: $(LIBCURL_SRC_DIR)\curl_ctype.c
++	$(CURL_CC) $(CURL_CFLAGS) /Fo"$@" $(LIBCURL_SRC_DIR)\curl_ctype.c
++$(CURL_DIROBJ)\curl.res: $(CURL_SRC_DIR)\curl.rc ..\curl.ico
++	$(RC) $(CURL_RC_FLAGS)
