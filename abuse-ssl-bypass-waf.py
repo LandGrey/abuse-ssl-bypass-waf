@@ -61,11 +61,16 @@ def single_cipher_request(cipher):
     mutex.acquire()
     if enable_waf_keyword:
         if not re.findall(hit_waf_regex, cipher_response):
-            print("[+] Success! Find Bypass Cipher!")
-            print("[+] Please Test: {}".format("{} {}".format(curl_command, "--cipher " + cipher + " " +
-                                                              target + payload_request)))
+            if len(cipher_response) == 0:
+                count += 1
+                print("[+] Cipher:{:35} Response Length: [0]".format(cipher))
+            else:
+                print("[+] Success! Find Bypass Cipher: {}".format(cipher))
+                exit("[+] Please Test: [{}]".format("{} {}".format(curl_command, "--cipher " + cipher + " " +
+                                                                  target + payload_request)))
         else:
-            print("[+] Cipher:{:35} Filter By Waf!".format(cipher))
+            count += 1
+            print("[-] Cipher:{:35} Filter By Waf!".format(cipher))
     else:
         cipher_length = len(cipher_response)
         if base_length != cipher_length:
@@ -91,7 +96,7 @@ def bypass_testing(threads=1):
     if len(ciphers) > 0:
         print("[+] {} Supported [{}] SSL/TLS Ciphers".format(target, len(ciphers)))
     else:
-        exit("[-] No SSL/TLS Ciphers of target supported")
+        print("[-] No SSL/TLS Ciphers of target supported")
 
     base_content_1 = curl_request(target, curl_command)
     base_content_2 = curl_request(target + normal_request, curl_command)
@@ -114,11 +119,14 @@ def bypass_testing(threads=1):
         for cipher in ciphers:
             single_cipher_request(cipher)
 
-    bcl_count = 0
-    base_cipher_length = dict(cipher_content_length[0]).values()[0]
-    for d in cipher_content_length:
-        if dict(d).values()[0] == base_cipher_length:
-            bcl_count += 1
+    if not enable_waf_keyword:
+        bcl_count = 0
+        base_cipher_length = dict(cipher_content_length[0]).values()[0]
+        for d in cipher_content_length:
+            if dict(d).values()[0] == base_cipher_length:
+                bcl_count += 1
+    else:
+        bcl_count = -1
     if count == len(ciphers) or bcl_count == len(ciphers):
         print("[-] Failed! Abusing SSL/TLS Ciphers Cannot Bypass Waf")
     else:
