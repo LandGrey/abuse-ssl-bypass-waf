@@ -16,7 +16,9 @@ from config import *
 
 def target_handle(target):
     if not target.startswith("https://"):
-        target = "https://" + target
+        target = "https://" + target.rstrip("/")
+    else:
+        target = target.rstrip("/")
     return target
 
 
@@ -96,7 +98,7 @@ def bypass_testing(threads=1):
     if len(ciphers) > 0:
         print("[+] {} Supported [{}] SSL/TLS Ciphers".format(target, len(ciphers)))
     else:
-        print("[-] No SSL/TLS Ciphers of target supported")
+        exit("[-] No SSL/TLS Ciphers of target supported")
 
     base_content_1 = curl_request(target, curl_command)
     base_content_2 = curl_request(target + normal_request, curl_command)
@@ -131,6 +133,7 @@ def bypass_testing(threads=1):
         print("[-] Failed! Abusing SSL/TLS Ciphers Cannot Bypass Waf")
     else:
         print("[*] Finished! Please check response content length and find whether there is bypass way")
+
 
 if __name__ == "__main__":
     start = time.time()
