@@ -5,6 +5,7 @@
 
 import re
 import time
+import urlparse
 import argparse
 import threading
 import subprocess
@@ -17,9 +18,8 @@ from config import *
 def target_handle(target):
     if not target.startswith("https://"):
         target = "https://" + target.rstrip("/")
-    else:
-        target = target.rstrip("/")
-    return target
+    scheme, netloc, url, params, query, fragment = urlparse.urlparse(target)
+    return "{}://{}".format(scheme, netloc)
 
 
 def is_alive():
@@ -32,8 +32,12 @@ def is_alive():
 
 
 def curl_request(target, command, timeout=15):
-    execute = subprocess.Popen("{} {}".format(command, target), shell=False, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
+    if "://" not in command[-1]:
+        command.append(target)
+    else:
+        command.remove(command[-1])
+        command.append(target)
+    execute = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     timer = Timer(timeout, execute.kill)
     try:
         timer.start()
@@ -52,14 +56,21 @@ def get_supported_ciphers():
     for line in str(body).split("\n"):
         match = re.findall("(Accepted|Preferred)\s+(.*?)\s+(.*?)\s+bits\s+(.*)", line.strip())
         if match:
-            ciphers.append(match[0][3])
+            ciphers.append(str(match[0][3]).split()[0])
     return ciphers
 
 
 def single_cipher_request(cipher):
     global target, count, base_length, cipher_content_length
     count = 0
-    cipher_response = curl_request(target + payload_request, "{} {}".format(curl_command, "--cipher " + cipher))
+    command = []
+
+    for x in curl_command:
+        command.append(x)
+    command.append('--cipher')
+    command.append(cipher)
+
+    cipher_response = curl_request(target + payload_request, command)
     mutex.acquire()
     if enable_waf_keyword:
         if not re.findall(hit_waf_regex, cipher_response):
@@ -68,8 +79,7 @@ def single_cipher_request(cipher):
                 print("[+] Cipher:{:35} Response Length: [0]".format(cipher))
             else:
                 print("[+] Success! Find Bypass Cipher: {}".format(cipher))
-                exit("[+] Please Test: [{}]".format("{} {}".format(curl_command, "--cipher " + cipher + " " +
-                                                                  target + payload_request)))
+                exit("[+] Please Test: [{}]".format('{} "{}"'.format(" ".join(curl_command[:-1]), target + payload_request)))
         else:
             count += 1
             print("[-] Cipher:{:35} Filter By Waf!".format(cipher))
