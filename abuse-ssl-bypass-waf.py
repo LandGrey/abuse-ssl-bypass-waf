@@ -5,7 +5,7 @@
 
 import re
 import time
-import urlparse
+from urllib import parse as urlparse
 import argparse
 import threading
 import subprocess
