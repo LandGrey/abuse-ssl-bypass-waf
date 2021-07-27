@@ -5,7 +5,10 @@
 
 import re
 import time
-import urlparse
+try:
+    import urlparse
+except ModuleNotFoundError:
+    from urllib import parse as urlparse
 import argparse
 import threading
 import subprocess
@@ -53,7 +56,7 @@ def get_supported_ciphers():
     global target
     ciphers = []
     body = curl_request(target, ciphers_command, timeout=60)
-    for line in str(body).split("\n"):
+    for line in body.decode().split("\n"):
         match = re.findall("(Accepted|Preferred)\s+(.*?)\s+(.*?)\s+bits\s+(.*)", line.strip())
         if match:
             ciphers.append(str(match[0][3]).split()[0])
@@ -133,9 +136,9 @@ def bypass_testing(threads=1):
 
     if not enable_waf_keyword:
         bcl_count = 0
-        base_cipher_length = dict(cipher_content_length[0]).values()[0]
+        base_cipher_length = list(dict(cipher_content_length[0]).values())[0]
         for d in cipher_content_length:
-            if dict(d).values()[0] == base_cipher_length:
+            if list(dict(d).values())[0] == base_cipher_length:
                 bcl_count += 1
     else:
         bcl_count = -1
